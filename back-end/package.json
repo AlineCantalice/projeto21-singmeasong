@@ -4,12 +4,14 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon src/server.ts"
+    "dev": "nodemon src/server.ts",
+    "test": "jest --no-cache"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@faker-js/faker": "^7.5.0",
     "@prisma/client": "^3.15.2",
     "@types/cors": "^2.8.12",
     "@types/dotenv": "^8.2.0",

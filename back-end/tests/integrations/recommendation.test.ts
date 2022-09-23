@@ -1,10 +1,25 @@
 import supertest from "supertest";
 import app from "../../src/app";
 import { prisma } from "../../src/database";
+import { createRecommendation } from "../factories/recommendationFactory";
+
+beforeEach(async () => {
+    await prisma.$executeRaw`TRUNCATE TABLE recommendations;`
+})
+
+afterAll(async () => {
+    await prisma.$disconnect()
+})
 
 describe('Tests POST /recommendations ', () => {
 
-    it.todo('Tests create new recommendation, expect status 201');
+    it('Tests create new recommendation, expect status 201', async () => {
+        const body = await createRecommendation();
+
+        const result = await supertest(app).post('/recommendations').send(body);
+
+        expect(result.status).toBe(201);
+    });
 
     it.todo('Tests create new recommendation, name already exists, expect status 409');
 

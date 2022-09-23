@@ -21,7 +21,14 @@ describe('Tests POST /recommendations ', () => {
         expect(result.status).toBe(201);
     });
 
-    it.todo('Tests create new recommendation, name already exists, expect status 409');
+    it('Tests create new recommendation, name already exists, expect status 409', async () => {
+        const body = await createRecommendation();
+
+        await supertest(app).post('/recommendations').send(body);
+        const result = await supertest(app).post('/recommendations').send(body);
+
+        expect(result.status).toBe(409);
+    });
 
 });
 

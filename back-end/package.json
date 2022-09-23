@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "dev": "nodemon src/server.ts",
-    "test": "jest --no-cache"
+    "test": "jest -i --coverage"
   },
   "keywords": [],
   "author": "",

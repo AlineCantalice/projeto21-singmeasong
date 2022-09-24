@@ -1,3 +1,4 @@
+import { Recommendation } from "@prisma/client";
 import supertest from "supertest";
 import app from "../../src/app";
 import { prisma } from "../../src/database";
@@ -34,17 +35,47 @@ describe('Tests POST /recommendations ', () => {
 
 describe('Tests POST /recommendations/:id/upvote ', () => {
 
-    it.todo('Tests add point to recommendation, expect status 200');
+    it('Tests add point to recommendation, expect status 200', async () => {
+        const body = await createRecommendation();
 
-    it.todo('Tests add point to recommendation, id not found, expect status 404');
+        const recommendation = await supertest(app).post('/recommendations').send(body);
 
-    it.todo('Tests add point to recommendation, param not informed, expect status 404');
+        const toBeVoted = await prisma.recommendation.findMany({
+            where: { id: recommendation.body.id }
+        })
+
+        const result = await supertest(app).post(`/recommendations/${toBeVoted[0].id}/upvote`).send();
+
+        const voted = await prisma.recommendation.findMany({
+            where: { id: recommendation.body.id }
+        })
+
+        expect(result.status).toBe(200);
+        expect(voted[0].score).toBe(++toBeVoted[0].score);
+    });
 
 });
 
 describe('Tests POST /recommendations/:id/downvote ', () => {
 
-    it.todo('Tests subtract point to recommendation, expect status 200');
+    it('Tests subtract point to recommendation, expect status 200', async () => {
+        const body = await createRecommendation();
+
+        const recommendation = await supertest(app).post('/recommendations').send(body);
+
+        const toBeDownvoted = await prisma.recommendation.findMany({
+            where: { id: recommendation.body.id }
+        })
+
+        const result = await supertest(app).post(`/recommendations/${toBeDownvoted[0].id}/downvote`).send();
+
+        const downvoted = await prisma.recommendation.findMany({
+            where: { id: recommendation.body.id }
+        })
+
+        expect(result.status).toBe(200);
+        expect(downvoted[0].score).toBe(--toBeDownvoted[0].score);
+    });
 
     it.todo('Tests subtract point to recommendation, recommendation less than -5 is removed, expect status 200');
 

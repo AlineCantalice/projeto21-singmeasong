@@ -95,11 +95,25 @@ describe('GET /recommendations', () => {
 
 describe('GET /recommendations/:id', () => {
 
-    it.todo('Tests get recommendation, expect response body not null');
+    it('Tests get recommendation, expect response body not null', async () => {
+        const body = await createRecommendation();
 
-    it.todo('Tests get recommendation, id not found, expect status 404');
+        const recommendationDb = await supertest(app).post('/recommendations').send(body);
 
-    it.todo('Tests get recommendation, param not informed, expect status 404');
+        const recommendation = await prisma.recommendation.findMany({
+            where: { name: recommendationDb.body.name }
+        })
+       
+        const result = await supertest(app).get(`/recommendations/${recommendation[0].id}`).send();
+
+        expect(result.status).toBe(200);
+        expect(result.body).toEqual({
+            id: recommendation[0].id,
+            name: recommendation[0].name,
+            youtubeLink: recommendation[0].youtubeLink,
+            score: recommendation[0].score
+        })
+    });
 
 });
 

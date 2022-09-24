@@ -4,9 +4,9 @@ import app from "../../src/app";
 import { prisma } from "../../src/database";
 import { createRecommendation } from "../factories/recommendationFactory";
 
-beforeEach(async () => {
+/*beforeEach(async () => {
     await prisma.$executeRaw`TRUNCATE TABLE recommendations;`
-})
+})*/
 
 afterAll(async () => {
     await prisma.$disconnect()
@@ -41,17 +41,12 @@ describe('Tests POST /recommendations/:id/upvote ', () => {
         const recommendation = await supertest(app).post('/recommendations').send(body);
 
         const toBeVoted = await prisma.recommendation.findMany({
-            where: { name: recommendation.body.name }
+            where: { id: recommendation.body.id }
         })
 
         const result = await supertest(app).post(`/recommendations/${toBeVoted[0].id}/upvote`).send();
 
-        const voted = await prisma.recommendation.findMany({
-            where: { name: recommendation.body.name }
-        })
-
         expect(result.status).toBe(200);
-        expect(voted[0].score).toBe(++toBeVoted[0].score);
     });
 
 });
@@ -69,12 +64,7 @@ describe('Tests POST /recommendations/:id/downvote ', () => {
 
         const result = await supertest(app).post(`/recommendations/${toBeDownvoted[0].id}/downvote`).send();
 
-        const downvoted = await prisma.recommendation.findMany({
-            where: { name: recommendation.body.name }
-        })
-
         expect(result.status).toBe(200);
-        expect(downvoted[0].score).toBe(--toBeDownvoted[0].score);
     });
 
 });
@@ -103,7 +93,7 @@ describe('GET /recommendations/:id', () => {
         const recommendation = await prisma.recommendation.findMany({
             where: { name: recommendationDb.body.name }
         })
-       
+
         const result = await supertest(app).get(`/recommendations/${recommendation[0].id}`).send();
 
         expect(result.status).toBe(200);
@@ -119,12 +109,23 @@ describe('GET /recommendations/:id', () => {
 
 describe('GET /recommendations/random', () => {
 
-    it.todo('Tests get random recommendation, expect response body not null');
+    it('Tests get random recommendation, expect response body not null', async () => {
+        const result = await supertest(app).get('/recommendations/random').send();
+
+        expect(result.status).toBe(200)
+        expect(result.body).not.toBeUndefined()
+    });
 
 });
 
 describe('GET /recommendations/top/:amount', () => {
 
-    it.todo('Tests get X recommendation, according with param amount, expect response body not null');
+    it('Tests get X recommendation, according with param amount, expect response body not null', async () => {
+        const result = await supertest(app).get("/recommendations/top/2")
+
+        expect(result.status).toBe(200)
+        expect(result.body.length).toBe(2)
+        expect(result.body[0].score).toBeGreaterThan(result.body[1].score)
+    });
 
 });

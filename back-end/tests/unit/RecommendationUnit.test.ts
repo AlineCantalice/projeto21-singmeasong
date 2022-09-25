@@ -18,6 +18,17 @@ describe('Tests recommendation service', () => {
         expect(recommendationRepository.create).toBeCalled();
     });
 
+    it("Tests insert a recommendation that already exists", async () => {
+        const recommendation = await createRecommendation();
+
+        jest.spyOn(recommendationRepository, "findByName").mockImplementationOnce(() : any => recommendation);
+
+        expect(recommendationService.insert(recommendation)).rejects.toEqual({
+            message: 'Recommendations names must be unique',
+            type: 'conflict'
+        });
+    });
+
     it.todo('Tests upvote function');
 
     it.todo('Tests downvote function');

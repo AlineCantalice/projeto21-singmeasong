@@ -8,8 +8,12 @@ import { createRecommendation } from "../factories/recommendationFactory";
     await prisma.$executeRaw`TRUNCATE TABLE recommendations;`
 })*/
 
-afterAll(async () => {
-    await prisma.$disconnect()
+afterAll( async ()=>{
+    await prisma.$executeRaw`
+        TRUNCATE TABLE recommendations
+        RESTART IDENTITY;
+    `;
+    await prisma.$disconnect();
 })
 
 describe('Tests POST /recommendations ', () => {
@@ -126,6 +130,7 @@ describe('GET /recommendations/top/:amount', () => {
         expect(result.status).toBe(200)
         expect(result.body.length).toBe(2)
         expect(result.body[0].score).toBeGreaterThan(result.body[1].score)
+        expect(result.body.length).toEqual(2);
     });
 
 });

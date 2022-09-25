@@ -87,22 +87,77 @@ describe('Tests recommendation service', () => {
     });
 
     it('Tests getByIdOrFail function', async () => {
-        jest.spyOn(recommendationRepository, 'create').mockImplementationOnce((): any => { });
-
         jest.spyOn(recommendationRepository, 'find').mockImplementationOnce((): any => recommendationCreated);
 
         const result = await recommendationService.getById(recommendationCreated.id);
+
         expect(result).toEqual(recommendationCreated);
     });
 
-    it.todo('Tests get function');
+    it('try to find a recommendation without valid id', async () => {
+        jest.spyOn(recommendationRepository, 'find').mockImplementationOnce((): any => { });
 
-    it.todo('Tests getTop function');
+        expect(recommendationService.getById(1)).rejects.toEqual({
+            message: '',
+            type: 'not_found',
+        });
+    });
 
-    it.todo('Tests getRandom function');
+    it('Tests get all function', async () => {
+        jest.spyOn(recommendationRepository, 'findAll').mockImplementationOnce((): any => [recommendationCreated]);
 
-    it.todo('Tests getByScore function');
+        const result = await recommendationService.get();
 
-    it.todo('Tests getScoreFilter function');
+        expect(result).not.toBeNull();
+        expect(recommendationRepository.findAll).toBeCalled();
+    });
 
+    it('Tests getTop function', async () => {
+        jest.spyOn(recommendationRepository, 'getAmountByScore').mockImplementationOnce((): any => recommendation);
+
+        const result = await recommendationService.getTop(3);
+
+        expect(result).not.toBeNull();
+    });
+
+});
+
+describe("Tests getRandom function", () => {
+
+    it('Tests getRandom function test (30% scenario)', async () => {
+        const recommendation = createRecommendation()
+        const recommendationData = { ...recommendation, id: 1, score: 11 }
+        const chance = 0.7
+        const index = 0
+
+        jest.spyOn(Math, 'random').mockImplementationOnce((): any => chance)
+
+        jest.spyOn(recommendationRepository, 'findAll').mockImplementationOnce((): any => [recommendationData, { ...recommendationData, id: 2 }])
+
+        jest.spyOn(Math, 'floor').mockImplementationOnce((): any => index)
+
+        const response = await recommendationService.getRandom()
+
+        expect(Math.random).toBeCalled()
+        expect(recommendationRepository.findAll).toBeCalled()
+        expect(Math.floor).toBeCalled()
+        expect(response).toBe(recommendationData)
+    });
+
+    it('getRandom function fail test (70% scenario)', async () => {
+        const chance = 0.3
+        const index = 0
+
+        jest.spyOn(Math, 'random').mockImplementationOnce((): any => chance)
+        jest.spyOn(recommendationRepository, 'findAll').mockImplementationOnce((): any => [])
+        jest.spyOn(recommendationRepository, 'findAll').mockImplementationOnce((): any => [])
+        jest.spyOn(Math, 'floor').mockImplementationOnce((): any => index)
+
+        const response = recommendationService.getRandom()
+
+        expect(Math.random).toBeCalled()
+        expect(recommendationRepository.findAll).toBeCalled()
+        expect(Math.floor).toBeCalled()
+        expect(response).rejects.toEqual({ message: '', type: 'not_found' })
+    })
 });

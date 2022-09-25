@@ -4,7 +4,7 @@ export async function restartTable(){
     try{
         console.log("(2/6)===Restarting All tables...===");
         await prisma.$queryRaw`TRUNCATE TABLE recommendations RESTART IDENTITY CASCADE;`;
-        console.log("(3/6)===Restaing is complete===");
+        console.log("(3/6)===Restarting is complete===");
     } catch(e) {
         console.error(e);
         process.exit(1);

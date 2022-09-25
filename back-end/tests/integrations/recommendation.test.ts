@@ -2,13 +2,14 @@ import { Recommendation } from "@prisma/client";
 import supertest from "supertest";
 import app from "../../src/app";
 import { prisma } from "../../src/database";
+import { recommendationService } from "../../src/services/recommendationsService";
 import { createRecommendation } from "../factories/recommendationFactory";
 
 /*beforeEach(async () => {
     await prisma.$executeRaw`TRUNCATE TABLE recommendations;`
 })*/
 
-afterAll( async ()=>{
+afterAll(async () => {
     await prisma.$executeRaw`
         TRUNCATE TABLE recommendations
         RESTART IDENTITY;
@@ -19,7 +20,7 @@ afterAll( async ()=>{
 describe('Tests POST /recommendations ', () => {
 
     it('Tests create new recommendation, expect status 201', async () => {
-        const body = await createRecommendation();
+        const body = createRecommendation();
 
         const result = await supertest(app).post('/recommendations').send(body);
 
@@ -27,7 +28,7 @@ describe('Tests POST /recommendations ', () => {
     });
 
     it('Tests create new recommendation, name already exists, expect status 409', async () => {
-        const body = await createRecommendation();
+        const body = createRecommendation();
 
         await supertest(app).post('/recommendations').send(body);
         const result = await supertest(app).post('/recommendations').send(body);
@@ -40,15 +41,15 @@ describe('Tests POST /recommendations ', () => {
 describe('Tests POST /recommendations/:id/upvote ', () => {
 
     it('Tests add point to recommendation, expect status 200', async () => {
-        const body = await createRecommendation();
+        const body = createRecommendation();
 
-        const recommendation = await supertest(app).post('/recommendations').send(body);
+        await supertest(app).post('/recommendations').send(body);
 
-        const toBeVoted = await prisma.recommendation.findMany({
-            where: { id: recommendation.body.id }
-        })
+        const toBeVoted = await prisma.recommendation.findMany();
 
-        const result = await supertest(app).post(`/recommendations/${toBeVoted[0].id}/upvote`).send();
+        const recommendationFilter = toBeVoted.filter(value => value.name === body.name)
+
+        const result = await supertest(app).post(`/recommendations/${recommendationFilter[0].id}/upvote`).send();
 
         expect(result.status).toBe(200);
     });
@@ -58,17 +59,40 @@ describe('Tests POST /recommendations/:id/upvote ', () => {
 describe('Tests POST /recommendations/:id/downvote ', () => {
 
     it('Tests subtract point to recommendation, expect status 200', async () => {
-        const body = await createRecommendation();
+        const body = createRecommendation();
 
-        const recommendation = await supertest(app).post('/recommendations').send(body);
+        await supertest(app).post('/recommendations').send(body);
 
-        const toBeDownvoted = await prisma.recommendation.findMany({
-            where: { name: recommendation.body.name }
-        })
+        const toBeDownvoted = await prisma.recommendation.findMany();
 
-        const result = await supertest(app).post(`/recommendations/${toBeDownvoted[0].id}/downvote`).send();
+        const recommendationFilter = toBeDownvoted.filter(value => value.name === body.name)
+
+        const result = await supertest(app).post(`/recommendations/${recommendationFilter[0].id}/downvote`).send();
+
+
 
         expect(result.status).toBe(200);
+    });
+
+    it('Tests subtract point to recommendation, score less than -5, expect status 200 and remove', async () => {
+        const body = createRecommendation();
+
+        await supertest(app).post('/recommendations').send(body);
+
+        const toBeDownvoted = await prisma.recommendation.findMany()
+
+        const recommendationFilter = toBeDownvoted.filter(value => value.name === body.name)
+
+        await prisma.recommendation.update({ where: { id: recommendationFilter[0].id }, data: {...recommendationFilter[0], score: -5} })
+
+        const result = await supertest(app).post(`/recommendations/${recommendationFilter[0].id}/downvote`).send();
+
+        const toBeRemoved = await prisma.recommendation.findMany();
+
+        const recommendationRemoved = toBeRemoved.filter(value => value.name === recommendationFilter[0].name)
+
+        expect(result.status).toBe(200);
+        expect(recommendationRemoved).toStrictEqual([]);
     });
 
 });
@@ -76,7 +100,7 @@ describe('Tests POST /recommendations/:id/downvote ', () => {
 describe('GET /recommendations', () => {
 
     it('Tests get recommendation, expect response body not null', async () => {
-        const body = await createRecommendation();
+        const body = createRecommendation();
 
         await supertest(app).post('/recommendations').send(body);
         const result = await supertest(app).get('/recommendations').send();
@@ -90,22 +114,22 @@ describe('GET /recommendations', () => {
 describe('GET /recommendations/:id', () => {
 
     it('Tests get recommendation, expect response body not null', async () => {
-        const body = await createRecommendation();
+        const body = createRecommendation();
 
-        const recommendationDb = await supertest(app).post('/recommendations').send(body);
+        await supertest(app).post('/recommendations').send(body);
 
-        const recommendation = await prisma.recommendation.findMany({
-            where: { name: recommendationDb.body.name }
-        })
+        const recommendation = await prisma.recommendation.findMany();
 
-        const result = await supertest(app).get(`/recommendations/${recommendation[0].id}`).send();
+        const recommendationFilter = recommendation.filter(value => value.name === body.name)
+
+        const result = await supertest(app).get(`/recommendations/${recommendationFilter[0].id}`).send();
 
         expect(result.status).toBe(200);
         expect(result.body).toEqual({
-            id: recommendation[0].id,
-            name: recommendation[0].name,
-            youtubeLink: recommendation[0].youtubeLink,
-            score: recommendation[0].score
+            id: recommendationFilter[0].id,
+            name: recommendationFilter[0].name,
+            youtubeLink: recommendationFilter[0].youtubeLink,
+            score: recommendationFilter[0].score
         })
     });
 
@@ -127,7 +151,6 @@ describe('GET /recommendations/top/:amount', () => {
     it('Tests get X recommendation, according with param amount, expect response body not null', async () => {
         const result = await supertest(app).get("/recommendations/top/2")
 
-        expect(result.status).toBe(200)
         expect(result.body.length).toBe(2)
         expect(result.body[0].score).toBeGreaterThan(result.body[1].score)
         expect(result.body.length).toEqual(2);

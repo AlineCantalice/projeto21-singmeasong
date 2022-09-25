@@ -27,14 +27,67 @@ describe('Tests recommendation service', () => {
             message: 'Recommendations names must be unique',
             type: 'conflict'
         });
+
+        expect(recommendationRepository.findByName).toBeCalled();
     });
 
-    it.todo('Tests upvote function');
+    it('Tests upvote function', async () => {
+        jest.spyOn(recommendationRepository, "find").mockImplementationOnce((): any => recommendationCreated);
+        jest.spyOn(recommendationRepository, "updateScore").mockImplementationOnce((): any => { return { ...recommendationCreated, score: recommendationCreated.score - 1 } });
 
-    it.todo('Tests downvote function');
+        const result = await recommendationService.upvote(recommendationCreated.id);
+
+        expect(result).toBe(undefined);
+        expect(recommendationRepository.find).toBeCalled();
+        expect(recommendationRepository.updateScore).toBeCalled();
+    });
+
+    it("Tests upvote an invalid recommendation", async () => {
+        jest.spyOn(recommendationRepository, 'find').mockImplementationOnce((): any => { });
+
+        expect(recommendationService.upvote(1)).rejects.toEqual({
+            message: '',
+            type: 'not_found',
+        });
+    });
+
+    it('Tests downvote function', async () => {
+        jest.spyOn(recommendationRepository, "find").mockImplementationOnce((): any => recommendationCreated);
+        jest.spyOn(recommendationRepository, "updateScore").mockImplementationOnce((): any => { return { ...recommendationCreated, score: recommendationCreated.score - 1 } });
+
+        const result = await recommendationService.downvote(recommendationCreated.id);
+
+        expect(result).toBe(undefined);
+        expect(recommendationRepository.find).toBeCalled();
+        expect(recommendationRepository.updateScore).toBeCalled();
+    });
+
+    it("Tests downvote an invalid recommendation", async () => {
+        jest.spyOn(recommendationRepository, 'find').mockImplementationOnce((): any => { });
+
+        expect(recommendationService.downvote(1)).rejects.toEqual({
+            message: '',
+            type: 'not_found',
+        });
+    });
+
+    it("try to downvote and remove a recommendation", async () => {
+        recommendationCreated.score = -6;
+
+        jest.spyOn(recommendationRepository, 'find').mockImplementationOnce((): any => recommendationCreated);
+        jest.spyOn(recommendationRepository, 'updateScore').mockImplementationOnce((): any => recommendationCreated);
+        jest.spyOn(recommendationRepository, 'remove').mockImplementationOnce((): any => { });
+
+        const result = await recommendationService.downvote(recommendationCreated.id);
+
+        expect(result).toBeUndefined();
+        expect(recommendationRepository.find).toBeCalled();
+        expect(recommendationRepository.updateScore).toBeCalled();
+        expect(recommendationRepository.remove).toBeCalled();
+    });
 
     it('Tests getByIdOrFail function', async () => {
-        jest.spyOn(recommendationRepository, 'create').mockImplementationOnce((): any => {});
+        jest.spyOn(recommendationRepository, 'create').mockImplementationOnce((): any => { });
 
         jest.spyOn(recommendationRepository, 'find').mockImplementationOnce((): any => recommendationCreated);
 

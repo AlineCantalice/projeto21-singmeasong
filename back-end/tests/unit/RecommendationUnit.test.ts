@@ -2,13 +2,15 @@ import { recommendationService } from "../../src/services/recommendationsService
 import { jest } from "@jest/globals";
 import { recommendationRepository } from "../../src/repositories/recommendationRepository";
 import { createRecommendation } from "../factories/recommendationFactory";
+import { Recommendation } from "@prisma/client";
 jest.mock("../../src/repositories/recommendationRepository");
 
 describe('Tests recommendation service', () => {
 
-    it('Tests insert function', async () => {
-        const recommendation = await createRecommendation();
+    const recommendation = createRecommendation();
+    const recommendationCreated = { ...recommendation, score: -4, id: 200 } as Recommendation;
 
+    it('Tests insert function', async () => {
         jest.spyOn(recommendationRepository, 'findByName').mockImplementationOnce((): any => { });
         jest.spyOn(recommendationRepository, 'create').mockImplementationOnce((): any => { });
 
@@ -19,9 +21,7 @@ describe('Tests recommendation service', () => {
     });
 
     it("Tests insert a recommendation that already exists", async () => {
-        const recommendation = await createRecommendation();
-
-        jest.spyOn(recommendationRepository, "findByName").mockImplementationOnce(() : any => recommendation);
+        jest.spyOn(recommendationRepository, "findByName").mockImplementationOnce((): any => recommendation);
 
         expect(recommendationService.insert(recommendation)).rejects.toEqual({
             message: 'Recommendations names must be unique',
@@ -33,7 +33,14 @@ describe('Tests recommendation service', () => {
 
     it.todo('Tests downvote function');
 
-    it.todo('Tests getByIdOrFail function');
+    it('Tests getByIdOrFail function', async () => {
+        jest.spyOn(recommendationRepository, 'create').mockImplementationOnce((): any => {});
+
+        jest.spyOn(recommendationRepository, 'find').mockImplementationOnce((): any => recommendationCreated);
+
+        const result = await recommendationService.getById(recommendationCreated.id);
+        expect(result).toEqual(recommendationCreated);
+    });
 
     it.todo('Tests get function');
 
